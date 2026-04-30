@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mapa Interactivo de Colombia</title>
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+        body { margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f7f6; }
+        #map { width: 100%; height: 100vh; }
+        .info {
+            padding: 15px 20px;
+            font: 16px/1.5 Arial, Helvetica, sans-serif;
+            background: white;
+            background: rgba(255,255,255,0.9);
+            box-shadow: 0 0 15px rgba(0,0,0,0.2);
+            border-radius: 8px;
+            min-width: 250px;
+        }
+        .info h4 { margin: 0 0 10px; color: #333; border-bottom: 2px solid #005c9e; padding-bottom: 5px;}
+        .info-data { font-size: 14px; color: #555; }
+        .info-data span { font-weight: bold; color: #222; }
+    </style>
+</head>
+<body>
+
+<div id="map"></div>
+
+<!-- Leaflet JS -->
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+    // 1. Inicializar el mapa centrado en Colombia
+    var map = L.map('map').setView([4.5709, -74.2973], 6);
+
+    // Añadir un mapa base limpio
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+        attribution: '&copy; OpenStreetMap contributors &copy; CARTO',
+        subdomains: 'abcd',
+        maxZoom: 20
+    }).addTo(map);
+
+    // =========================================================================
+    // 2. AQUÍ VAN TUS DATOS PARA CADA DEPARTAMENTO
+    // Cuando me digas los datos, los agregaremos a este diccionario.
+    // =========================================================================
+    const datosDepartamentos = {
+        "CUNDINAMARCA": { dato1: "Ejemplo 1", dato2: "Ejemplo A" },
+        "ANTIOQUIA": { dato1: "Ejemplo 2", dato2: "Ejemplo B" },
+        "VALLE DEL CAUCA": { dato1: "Ejemplo 3", dato2: "Ejemplo C" },
+        "SANTAFE DE BOGOTA D.C": { dato1: "Ejemplo 4", dato2: "Capital" }
+        // Agregaremos más a medida que me los des...
+    };
+
+    // Control para mostrar la información
+    var info = L.control();
+
+    info.onAdd = function (map) {
+        this._div = L.DomUtil.create('div', 'info');
+        this.update();
+        return this._div;
+    };
+
+    // Método para actualizar la tarjeta de información
+    info.update = function (props) {
+        if (props) {
+            // El GeoJSON público suele usar "DPTO" o "NOMBRE_DPT"
+            let nombreDepto = props.NOMBRE_DPT || props.DPTO_CNMBR || "Desconocido"; 
+            
+            // Buscar datos o mostrar plantilla por defecto
+            let datos = datosDepartamentos[nombreDepto] || { dato1: "Sin datos asignados", dato2: "Pendiente" };
+            
+            // AQUÍ DEFINIMOS QUÉ DATOS SE MUESTRAN. (Se puede adaptar a lo que tú quieras)
+            this._div.innerHTML = `<h4>${nombreDepto}</h4>` +
+                `<div class="info-data">` +
+                `Dato 1: <span>${datos.dato1}</span><br />` +
+                `Dato 2: <span>${datos.dato2}</span><br /><br />` +
+                `</div>`;
+        } else {
+            this._div.innerHTML = '<h4>Mapa de Colombia</h4>Pasa el mouse sobre un departamento';
+        }
+    };
+
+    info.addTo(map);
+
+    // Estilos del mapa
+    function style(feature) {
+        return {
+            fillColor: '#005c9e', // Color de los departamentos
+            weight: 1.5,
+            opacity: 1,
+            color: 'white',
+            dashArray: '3',
+            fillOpacity: 0.6
+        };
+    }
+
+    // Efecto al pasar el mouse
+    function highlightFeature(e) {
+        var layer = e.target;
+        layer.setStyle({
+            fillColor: '#fbbc05', // Color al pasar el mouse (amarillo)
+            weight: 3,
+            color: '#333',
+            dashArray: '',
+            fillOpacity: 0.8
+        });
+        layer.bringToFront();
+        info.update(layer.feature.properties);
+    }
+
+    function resetHighlight(e) {
+        geojson.resetStyle(e.target);
+        info.update();
+    }
+
+    function onEachFeature(feature, layer) {
+        layer.on({
+            mouseover: highlightFeature,
+            mouseout: resetHighlight
+        });
+    }
+
+    var geojson;
+
+    // Cargar los límites de Colombia (GeoJSON)
+    fetch('https://gist.githubusercontent.com/john-guerra/43c7656821069d00dcbc/raw/be6a6e239cd2b5b803c6e7c2ec405b793a9064dd/Colombia.geo.json')
+        .then(response => response.json())
+        .then(data => {
+            geojson = L.geoJson(data, {
+                style: style,
+                onEachFeature: onEachFeature
+            }).addTo(map);
+        })
+        .catch(error => console.error('Error cargando el mapa:', error));
+
+</script>
+</body>
+</html>

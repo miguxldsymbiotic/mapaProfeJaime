@@ -62,6 +62,18 @@
         .item-card.active { background: var(--primary); color: white; border-color: var(--primary); box-shadow: 0 10px 20px rgba(0,51,102,0.15); }
         .item-card .snies { font-size: 0.75rem; font-weight: 800; opacity: 0.7; margin-bottom: 5px; display: block; }
         .item-card .name { font-size: 0.95rem; font-weight: 600; line-height: 1.4; }
+        .item-card.sub-item { margin-bottom: 0.5rem; padding: 0.8rem 1.2rem; background: #f8fafc; border: 1px dashed var(--border); }
+        .item-card.sub-item:last-child { margin-bottom: 0; }
+        .item-card.sub-item.active { background: var(--accent); color: var(--primary); border-color: var(--accent); }
+
+        .prog-group { margin-bottom: 1rem; border: 1px solid var(--border); border-radius: 15px; overflow: hidden; background: #f1f5f9; }
+        .group-header { padding: 1.2rem; cursor: pointer; display: flex; justify-content: space-between; align-items: center; transition: background 0.3s; }
+        .group-header:hover { background: #e2e8f0; }
+        .group-header .name { font-size: 0.95rem; font-weight: 700; color: var(--primary); flex: 1; }
+        .group-header .count { font-size: 0.7rem; background: var(--primary); color: white; padding: 2px 8px; border-radius: 20px; font-weight: 600; }
+        .group-content { display: none; padding: 0.8rem; background: white; border-top: 1px solid var(--border); }
+        .prog-group.expanded .group-content { display: block; }
+        .prog-group.expanded .group-header { background: #e2e8f0; }
 
         /* Map & Table */
         .dashboard-content { flex: 1; display: flex; flex-direction: column; gap: 1.5rem; }
@@ -168,7 +180,7 @@
         const rawData = [
             { snies: "10448", name: "Especialización en Comunicación Educativa", locations: [{ city: "Bogotá", center: "ENGATIVA PRESENCIAL", cont: 11, new: 2, total: 13, dpto: "BOGOTA D.C." }] },
             { snies: "12168", name: "Licenciatura en Informática", locations: [{ city: "Bogotá", center: "CD BOLIVAR PRESENCIAL", cont: 1, new: 0, total: 1, dpto: "BOGOTA D.C." }, { city: "Bogotá", center: "ENGATIVA PRESENCIAL", cont: 70, new: 1, total: 71, dpto: "BOGOTA D.C." }] },
-            { snies: "104887", name: "Licenciatura en Educación Artística", locations: [{ city: "Bogotá", center: "CD BOLIVAR DISTANCIA", cont: 90, new: 13, total: 103, dpto: "BOGOTA D.C." }, { city: "Bello", center: "COA BELLO", cont: 3, new: 0, total: 3, dpto: "ANTIOQUIA" }, { city: "Bucaramanga", center: "CU BUCARAMANGA", cont: 70, new: 1, total: 71, dpto: "SANTANDER" }, { city: "Buga", center: "CU BUGA", cont: 2, new: 0, total: 2, dpto: "VALLE DEL CAUCA" }, { city: "Bogotá", center: "ENGATIVA DISTANCIA", cont: 54, new: 0, total: 54, dpto: "BOGOTA D.C." }, { city: "Bogotá", center: "SANTAFE DISTANCIA", cont: 3, new: 0, total: 3, dpto: "BOGOTA D.C." }] },
+            { snies: "104887", name: "Licenciatura en Educación Artística", locations: [{ city: "Bogotá", center: "CD BOLIVAR DISTANCIA", cont: 90, new: 13, total: 103, dpto: "BOGOTA D.C." }, { city: "Bucaramanga", center: "CU BUCARAMANGA", cont: 70, new: 1, total: 71, dpto: "SANTANDER" }, { city: "Bogotá", center: "ENGATIVA DISTANCIA", cont: 54, new: 0, total: 54, dpto: "BOGOTA D.C." }, { city: "Bogotá", center: "SANTAFE DISTANCIA", cont: 3, new: 0, total: 3, dpto: "BOGOTA D.C." }] },
             { snies: "106016", name: "Licenciatura en Educación Física, Recreación y deportes", locations: [{ city: "Bogotá", center: "CD BOLIVAR DISTANCIA", cont: 141, new: 49, total: 190, dpto: "BOGOTA D.C." }, { city: "Bogotá", center: "ENGATIVA DISTANCIA", cont: 460, new: 73, total: 533, dpto: "BOGOTA D.C." }, { city: "Bogotá", center: "KENNEDY DISTANCIA", cont: 152, new: 0, total: 152, dpto: "BOGOTA D.C." }, { city: "Bogotá", center: "SANTAFE DISTANCIA", cont: 126, new: 15, total: 141, dpto: "BOGOTA D.C." }, { city: "Bogotá", center: "USAQUEN DISTANCIA", cont: 61, new: 18, total: 79, dpto: "BOGOTA D.C." }] },
             { snies: "106053", name: "Licenciatura en Educación Infantil", locations: [{ city: "Bogotá", center: "CD BOLIVAR PRESENCIAL", cont: 35, new: 12, total: 47, dpto: "BOGOTA D.C." }, { city: "Soacha", center: "CU SOACHA", cont: 100, new: 8, total: 108, dpto: "CUNDINAMARCA" }, { city: "Zipaquirá", center: "CU ZIPAQUIRÁ", cont: 115, new: 0, total: 115, dpto: "CUNDINAMARCA" }, { city: "Bogotá", center: "ENGATIVA PRESENCIAL", cont: 365, new: 52, total: 417, dpto: "BOGOTA D.C." }] },
             { snies: "106861", name: "Licenciatura en Humanidades y Lengua Castellana", locations: [{ city: "Bogotá", center: "CD BOLIVAR PRESENCIAL", cont: 2, new: 0, total: 2, dpto: "BOGOTA D.C." }, { city: "Bogotá", center: "ENGATIVA PRESENCIAL", cont: 109, new: 10, total: 119, dpto: "BOGOTA D.C." }] },
@@ -176,7 +188,7 @@
             { snies: "106884", name: "Licenciatura en Educación Física", locations: [{ city: "Bogotá", center: "CD BOLIVAR PRESENCIAL", cont: 104, new: 30, total: 134, dpto: "BOGOTA D.C." }, { city: "Bogotá", center: "ENGATIVA PRESENCIAL", cont: 470, new: 57, total: 527, dpto: "BOGOTA D.C." }, { city: "Bogotá", center: "KENNEDY PRESCIAL", cont: 109, new: 0, total: 109, dpto: "BOGOTA D.C." }, { city: "Bogotá", center: "SANTAFE PRESENCIAL", cont: 185, new: 21, total: 206, dpto: "BOGOTA D.C." }] },
             { snies: "108031", name: "Licenciatura en Educación Artística (108031)", locations: [{ city: "Bogotá", center: "CD BOLIVAR PRESENCIAL", cont: 2, new: 0, total: 2, dpto: "BOGOTA D.C." }, { city: "Bogotá", center: "ENGATIVA PRESENCIAL", cont: 267, new: 28, total: 295, dpto: "BOGOTA D.C." }] },
             { snies: "109127", name: "Maestría en Ambientes de Aprendizaje", locations: [{ city: "Bogotá", center: "ENGATIVA PRESENCIAL", cont: 23, new: 1, total: 24, dpto: "BOGOTA D.C." }] },
-            { snies: "109445", name: "Licenciatura en Ciencias Naturales y Educación Ambiental", locations: [{ city: "Bogotá", center: "CD BOLIVAR DISTANCIA", cont: 3, new: 0, total: 3, dpto: "BOGOTA D.C." }, { city: "Bucaramanga", center: "CU BUCARAMANGA", cont: 121, new: 16, total: 137, dpto: "SANTANDER" }, { city: "Buga", center: "CU BUGA", cont: 7, new: 0, total: 7, dpto: "VALLE DEL CAUCA" }, { city: "Garzón", center: "CU GARZON", cont: 53, new: 0, total: 53, dpto: "HUILA" }, { city: "Neiva", center: "CU NEIVA", cont: 37, new: 0, total: 37, dpto: "HUILA" }, { city: "Bogotá", center: "ENGATIVA DISTANCIA", cont: 40, new: 4, total: 44, dpto: "BOGOTA D.C." }] },
+            { snies: "109445", name: "Licenciatura en Ciencias Naturales y Educación Ambiental", locations: [{ city: "Bogotá", center: "CD BOLIVAR DISTANCIA", cont: 3, new: 0, total: 3, dpto: "BOGOTA D.C." }, { city: "Bucaramanga", center: "CU BUCARAMANGA", cont: 121, new: 16, total: 137, dpto: "SANTANDER" }, { city: "Garzón", center: "CU GARZON", cont: 53, new: 0, total: 53, dpto: "HUILA" }, { city: "Neiva", center: "CU NEIVA", cont: 37, new: 0, total: 37, dpto: "HUILA" }, { city: "Bogotá", center: "ENGATIVA DISTANCIA", cont: 40, new: 4, total: 44, dpto: "BOGOTA D.C." }] },
             { snies: "109732", name: "Licenciatura en Lenguas Extranjeras con Énfasis en Inglés (109732)", locations: [{ city: "Girardot", center: "CU GIRARDOT", cont: 169, new: 27, total: 196, dpto: "CUNDINAMARCA" }] },
             { snies: "109733", name: "Licenciatura en Lenguas Extranjeras con Énfasis en Inglés (109733)", locations: [{ city: "Madrid", center: "CU MADRID", cont: 117, new: 18, total: 135, dpto: "CUNDINAMARCA" }] },
             { snies: "109734", name: "Licenciatura en Educación Infantil (109734)", locations: [{ city: "Girardot", center: "CU GIRARDOT", cont: 35, new: 0, total: 35, dpto: "CUNDINAMARCA" }] },
@@ -211,15 +223,44 @@
 
         // --- FUNCIONES DE RENDERIZADO ---
         
+        // --- FUNCIONES DE RENDERIZADO ---
+        
         function renderList(data) {
             const list = document.getElementById('prog-list-div');
             list.innerHTML = '';
+            
+            // Agrupar por nombre base
+            const grouped = {};
             data.forEach(p => {
-                const card = document.createElement('div');
-                card.className = `item-card ${selectedSnies === p.snies ? 'active' : ''}`;
-                card.innerHTML = `<span class="snies">SNIES ${p.snies}</span><span class="name">${p.name}</span>`;
-                card.onclick = () => selectProgram(p.snies);
-                list.appendChild(card);
+                const baseName = p.name.split(' (')[0].trim();
+                if (!grouped[baseName]) grouped[baseName] = [];
+                grouped[baseName].push(p);
+            });
+
+            Object.keys(grouped).forEach(name => {
+                const group = grouped[name];
+                const groupDiv = document.createElement('div');
+                groupDiv.className = 'prog-group';
+                
+                const isExpanded = group.some(p => p.snies === selectedSnies);
+                
+                groupDiv.innerHTML = `
+                    <div class="group-header ${isExpanded ? 'expanded' : ''}" onclick="this.parentElement.classList.toggle('expanded')">
+                        <span class="name">${name}</span>
+                        <span class="count">${group.length} SNIES</span>
+                    </div>
+                    <div class="group-content">
+                        ${group.map(p => `
+                            <div class="item-card sub-item ${selectedSnies === p.snies ? 'active' : ''}" 
+                                 onclick="event.stopPropagation(); selectProgram('${p.snies}')">
+                                <span class="snies">SNIES ${p.snies}</span>
+                            </div>
+                        `).join('')}
+                    </div>
+                `;
+                
+                if (isExpanded) groupDiv.classList.add('expanded');
+                list.appendChild(groupDiv);
             });
         }
 
