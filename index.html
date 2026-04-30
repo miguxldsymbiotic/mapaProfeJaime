@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard Oferta Académica Uniminuto</title>
+    <!-- Framework: ECharts (Cargado desde CDN confiable) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/echarts/5.4.3/echarts.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #003366;
+            --accent: #FFCC00;
+            --bg: #f8fafc;
+            --white: #ffffff;
+            --text: #1e293b;
+            --border: #e2e8f0;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Outfit', sans-serif; }
+        body { background-color: var(--bg); color: var(--text); height: 100vh; overflow: hidden; display: flex; flex-direction: column; }
+
+        header {
+            background: var(--white);
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 3px solid var(--accent);
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            z-index: 100;
+        }
+
+        .main-container { display: flex; flex: 1; overflow: hidden; padding: 1.5rem; gap: 1.5rem; }
+
+        /* Sidebar */
+        .sidebar {
+            width: 380px;
+            background: var(--white);
+            border-radius: 20px;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+            border: 1px solid var(--border);
+        }
+
+        .search-box { padding: 1.5rem; border-bottom: 1px solid var(--border); }
+        .search-input { width: 100%; padding: 0.8rem; border-radius: 12px; border: 2px solid var(--border); outline: none; transition: 0.3s; font-size: 0.9rem; }
+        .search-input:focus { border-color: var(--primary); }
+
+        .list-container { flex: 1; overflow-y: auto; padding: 1rem; }
+        .item-card {
+            padding: 1.2rem;
+            background: #f1f5f9;
+            border-radius: 15px;
+            margin-bottom: 1rem;
+            cursor: pointer;
+            border: 1px solid var(--border);
+            transition: all 0.2s;
+        }
+        .item-card:hover { transform: translateX(5px); background: #e2e8f0; }
+        .item-card.active { background: var(--primary); color: white; border-color: var(--primary); box-shadow: 0 10px 20px rgba(0,51,102,0.15); }
+        .item-card .snies { font-size: 0.75rem; font-weight: 800; opacity: 0.7; margin-bottom: 5px; display: block; }
+        .item-card .name { font-size: 0.95rem; font-weight: 600; line-height: 1.4; }
+
+        /* Map & Table */
+        .dashboard-content { flex: 1; display: flex; flex-direction: column; gap: 1.5rem; }
+
+        .map-wrapper {
+            flex: 1.2;
+            background: var(--white);
+            border-radius: 25px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+            border: 1px solid var(--border);
+            position: relative;
+            padding: 1rem;
+        }
+
+        #main-map { width: 100%; height: 100%; }
+
+        .table-wrapper {
+            flex: 1;
+            background: var(--white);
+            border-radius: 25px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+            border: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .table-head-info { padding: 1.2rem 1.8rem; background: var(--primary); color: white; display: flex; justify-content: space-between; align-items: center; }
+        .scroll-table { flex: 1; overflow-y: auto; }
+        table { width: 100%; border-collapse: collapse; }
+        th { background: #f8fafc; padding: 15px 20px; text-align: left; font-size: 0.8rem; color: #64748b; text-transform: uppercase; border-bottom: 2px solid var(--border); position: sticky; top: 0; }
+        td { padding: 15px 20px; border-bottom: 1px solid #f1f5f9; font-size: 0.9rem; }
+
+        .badge { padding: 5px 12px; border-radius: 8px; font-weight: 700; font-size: 0.8rem; }
+        .badge-total { background: #e0f2fe; color: #0369a1; }
+        .badge-new { background: #fef3c7; color: #92400e; }
+
+        .empty-msg { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: #94a3b8; font-size: 0.9rem; text-align: center; }
+
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div style="display: flex; align-items: center; gap: 15px;">
+            <div style="background: var(--primary); width: 45px; height: 45px; border-radius: 12px; display: flex; align-items: center; justify-content: center;">
+                <svg viewBox="0 0 24 24" width="24" height="24" fill="white"><path d="M12 2L1 21h22L12 2z"/></svg>
+            </div>
+            <h1 style="font-size: 1.4rem;">UNIMINUTO <span style="font-weight: 300; opacity: 0.6;">| Visor de Oferta</span></h1>
+        </div>
+        <div style="text-align: right;">
+            <div style="font-size: 0.75rem; color: #64748b; font-weight: 700;">ESTUDIANTES TOTALES</div>
+            <div id="grand-total-val" style="font-size: 1.6rem; font-weight: 800; color: var(--primary);">0</div>
+        </div>
+    </header>
+
+    <div class="main-container">
+        <!-- Panel Izquierdo: Lista de Programas -->
+        <div class="sidebar">
+            <div class="search-box">
+                <input type="text" id="prog-search" class="search-input" placeholder="Buscar por SNIES o Nombre...">
+            </div>
+            <div class="list-container" id="prog-list-div">
+                <!-- Se inyecta con JS -->
+            </div>
+        </div>
+
+        <!-- Panel Central: Mapa y Tabla -->
+        <div class="dashboard-content">
+            <div class="map-wrapper">
+                <div id="main-map"></div>
+                <div id="map-loading" class="empty-msg">Cargando Mapa de Colombia...</div>
+            </div>
+
+            <div class="table-wrapper">
+                <div class="table-head-info">
+                    <h3 id="current-p-name">Seleccione un Programa</h3>
+                    <div style="font-size: 0.9rem; font-weight: 600;">SNIES: <span id="current-p-snies">-</span></div>
+                </div>
+                <div class="scroll-table">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Ciudad / Municipio</th>
+                                <th>Email / Centro Uniminuto</th>
+                                <th style="text-align: center;">Continuo</th>
+                                <th style="text-align: center;">Nuevo</th>
+                                <th style="text-align: center;">Total General</th>
+                            </tr>
+                        </thead>
+                        <tbody id="p-details-table">
+                            <!-- Se inyecta con JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- DATASET ---
+        const rawData = [
+            { snies: "10448", name: "Especialización en Comunicación Educativa", locations: [{ city: "Bogotá", center: "ENGATIVA PRESENCIAL", cont: 11, new: 2, total: 13, dpto: "BOGOTA D.C." }] },
+            { snies: "12168", name: "Licenciatura en Informática", locations: [{ city: "Bogotá", center: "CD BOLIVAR PRESENCIAL", cont: 1, new: 0, total: 1, dpto: "BOGOTA D.C." }, { city: "Bogotá", center: "ENGATIVA PRESENCIAL", cont: 70, new: 1, total: 71, dpto: "BOGOTA D.C." }] },
+            { snies: "104887", name: "Licenciatura en Educación Artística", locations: [{ city: "Bogotá", center: "CD BOLIVAR DISTANCIA", cont: 90, new: 13, total: 103, dpto: "BOGOTA D.C." }, { city: "Bello", center: "COA BELLO", cont: 3, new: 0, total: 3, dpto: "ANTIOQUIA" }, { city: "Bucaramanga", center: "CU BUCARAMANGA", cont: 70, new: 1, total: 71, dpto: "SANTANDER" }, { city: "Buga", center: "CU BUGA", cont: 2, new: 0, total: 2, dpto: "VALLE DEL CAUCA" }, { city: "Bogotá", center: "ENGATIVA DISTANCIA", cont: 54, new: 0, total: 54, dpto: "BOGOTA D.C." }, { city: "Bogotá", center: "SANTAFE DISTANCIA", cont: 3, new: 0, total: 3, dpto: "BOGOTA D.C." }] },
+            { snies: "106016", name: "Licenciatura en Educación Física, Recreación y deportes", locations: [{ city: "Bogotá", center: "CD BOLIVAR DISTANCIA", cont: 141, new: 49, total: 190, dpto: "BOGOTA D.C." }, { city: "Bogotá", center: "ENGATIVA DISTANCIA", cont: 460, new: 73, total: 533, dpto: "BOGOTA D.C." }, { city: "Bogotá", center: "KENNEDY DISTANCIA", cont: 152, new: 0, total: 152, dpto: "BOGOTA D.C." }, { city: "Bogotá", center: "SANTAFE DISTANCIA", cont: 126, new: 15, total: 141, dpto: "BOGOTA D.C." }, { city: "Bogotá", center: "USAQUEN DISTANCIA", cont: 61, new: 18, total: 79, dpto: "BOGOTA D.C." }] },
+            { snies: "106053", name: "Licenciatura en Educación Infantil", locations: [{ city: "Bogotá", center: "CD BOLIVAR PRESENCIAL", cont: 35, new: 12, total: 47, dpto: "BOGOTA D.C." }, { city: "Soacha", center: "CU SOACHA", cont: 100, new: 8, total: 108, dpto: "CUNDINAMARCA" }, { city: "Zipaquirá", center: "CU ZIPAQUIRÁ", cont: 115, new: 0, total: 115, dpto: "CUNDINAMARCA" }, { city: "Bogotá", center: "ENGATIVA PRESENCIAL", cont: 365, new: 52, total: 417, dpto: "BOGOTA D.C." }] },
+            { snies: "106861", name: "Licenciatura en Humanidades y Lengua Castellana", locations: [{ city: "Bogotá", center: "CD BOLIVAR PRESENCIAL", cont: 2, new: 0, total: 2, dpto: "BOGOTA D.C." }, { city: "Bogotá", center: "ENGATIVA PRESENCIAL", cont: 109, new: 10, total: 119, dpto: "BOGOTA D.C." }] },
+            { snies: "106862", name: "Licenciatura en Lenguas Extranjeras con Énfasis en Inglés", locations: [{ city: "Bogotá", center: "CD BOLIVAR PRESENCIAL", cont: 250, new: 65, total: 315, dpto: "BOGOTA D.C." }, { city: "Bogotá", center: "ENGATIVA PRESENCIAL", cont: 842, new: 73, total: 915, dpto: "BOGOTA D.C." }, { city: "Bogotá", center: "KENNEDY PRESCIAL", cont: 21, new: 0, total: 21, dpto: "BOGOTA D.C." }, { city: "Bogotá", center: "SANTAFE PRESENCIAL", cont: 145, new: 13, total: 158, dpto: "BOGOTA D.C." }] },
+            { snies: "106884", name: "Licenciatura en Educación Física", locations: [{ city: "Bogotá", center: "CD BOLIVAR PRESENCIAL", cont: 104, new: 30, total: 134, dpto: "BOGOTA D.C." }, { city: "Bogotá", center: "ENGATIVA PRESENCIAL", cont: 470, new: 57, total: 527, dpto: "BOGOTA D.C." }, { city: "Bogotá", center: "KENNEDY PRESCIAL", cont: 109, new: 0, total: 109, dpto: "BOGOTA D.C." }, { city: "Bogotá", center: "SANTAFE PRESENCIAL", cont: 185, new: 21, total: 206, dpto: "BOGOTA D.C." }] },
+            { snies: "108031", name: "Licenciatura en Educación Artística (108031)", locations: [{ city: "Bogotá", center: "CD BOLIVAR PRESENCIAL", cont: 2, new: 0, total: 2, dpto: "BOGOTA D.C." }, { city: "Bogotá", center: "ENGATIVA PRESENCIAL", cont: 267, new: 28, total: 295, dpto: "BOGOTA D.C." }] },
+            { snies: "109127", name: "Maestría en Ambientes de Aprendizaje", locations: [{ city: "Bogotá", center: "ENGATIVA PRESENCIAL", cont: 23, new: 1, total: 24, dpto: "BOGOTA D.C." }] },
+            { snies: "109445", name: "Licenciatura en Ciencias Naturales y Educación Ambiental", locations: [{ city: "Bogotá", center: "CD BOLIVAR DISTANCIA", cont: 3, new: 0, total: 3, dpto: "BOGOTA D.C." }, { city: "Bucaramanga", center: "CU BUCARAMANGA", cont: 121, new: 16, total: 137, dpto: "SANTANDER" }, { city: "Buga", center: "CU BUGA", cont: 7, new: 0, total: 7, dpto: "VALLE DEL CAUCA" }, { city: "Garzón", center: "CU GARZON", cont: 53, new: 0, total: 53, dpto: "HUILA" }, { city: "Neiva", center: "CU NEIVA", cont: 37, new: 0, total: 37, dpto: "HUILA" }, { city: "Bogotá", center: "ENGATIVA DISTANCIA", cont: 40, new: 4, total: 44, dpto: "BOGOTA D.C." }] },
+            { snies: "109732", name: "Licenciatura en Lenguas Extranjeras con Énfasis en Inglés (109732)", locations: [{ city: "Girardot", center: "CU GIRARDOT", cont: 169, new: 27, total: 196, dpto: "CUNDINAMARCA" }] },
+            { snies: "109733", name: "Licenciatura en Lenguas Extranjeras con Énfasis en Inglés (109733)", locations: [{ city: "Madrid", center: "CU MADRID", cont: 117, new: 18, total: 135, dpto: "CUNDINAMARCA" }] },
+            { snies: "109734", name: "Licenciatura en Educación Infantil (109734)", locations: [{ city: "Girardot", center: "CU GIRARDOT", cont: 35, new: 0, total: 35, dpto: "CUNDINAMARCA" }] },
+            { snies: "110862", name: "Especialización en Atención A la Primera Infancia", locations: [{ city: "Fusagasugá", center: "COA FUSAGASUGA", cont: 0, new: 9, total: 9, dpto: "CUNDINAMARCA" }, { city: "Zipaquirá", center: "CU ZIPAQUIRÁ", cont: 1, new: 0, total: 1, dpto: "CUNDINAMARCA" }] },
+            { snies: "110933", name: "Maestría en Educación para la Inclusión y la Discapacidad", locations: [{ city: "Bucaramanga", center: "CU BUCARAMANGA", cont: 40, new: 9, total: 49, dpto: "SANTANDER" }] },
+            { snies: "111002", name: "Maestría en Ambientes de Aprendizaje (111002)", locations: [{ city: "Bucaramanga", center: "CU BUCARAMANGA", cont: 7, new: 0, total: 7, dpto: "SANTANDER" }, { city: "Cúcuta", center: "CU CUCUTA", cont: 19, new: 0, total: 19, dpto: "NORTE DE SANTANDER" }] },
+            { snies: "111096", name: "Licenciatura en Ciencias Naturales y Educación Ambiental (111096)", locations: [{ city: "Ibagué", center: "CU IBAGUE", cont: 19, new: 0, total: 19, dpto: "TOLIMA" }] },
+            { snies: "111262", name: "Licenciatura en Lenguas Extranjeras con Énfasis en Inglés (111262)", locations: [{ city: "Soacha", center: "CU SOACHA", cont: 122, new: 31, total: 153, dpto: "CUNDINAMARCA" }] },
+            { snies: "111279", name: "Maestría en Acondicionamiento Físico y Bienestar", locations: [{ city: "Bogotá", center: "ENGATIVA DISTANCIA", cont: 15, new: 13, total: 28, dpto: "BOGOTA D.C." }] },
+            { snies: "111286", name: "Licenciatura en Lenguas Extranjeras con Énfasis en Inglés (111286)", locations: [{ city: "Bogotá", center: "CD BOLIVAR DISTANCIA", cont: 88, new: 27, total: 115, dpto: "BOGOTA D.C." }, { city: "Bogotá", center: "ENGATIVA DISTANCIA", cont: 177, new: 45, total: 222, dpto: "BOGOTA D.C." }, { city: "Bogotá", center: "KENNEDY DISTANCIA", cont: 12, new: 0, total: 12, dpto: "BOGOTA D.C." }, { city: "Bogotá", center: "SANTAFE DISTANCIA", cont: 1, new: 0, total: 1, dpto: "BOGOTA D.C." }, { city: "Bogotá", center: "USAQUEN DISTANCIA", cont: 13, new: 0, total: 13, dpto: "BOGOTA D.C." }] },
+            { snies: "116795", name: "Licenciatura en Educación Infantil (116795)", locations: [{ city: "Barrancabermeja", center: "CU BARRANCABERMEJA", cont: 0, new: 15, total: 15, dpto: "SANTANDER" }, { city: "Bucaramanga", center: "CU BUCARAMANGA", cont: 69, new: 37, total: 106, dpto: "SANTANDER" }, { city: "Cúcuta", center: "CU CUCUTA", cont: 57, new: 25, total: 82, dpto: "NORTE DE SANTANDER" }, { city: "Ocaña", center: "CU OCAÑA", cont: 13, new: 0, total: 13, dpto: "NORTE DE SANTANDER" }, { city: "Tibú", center: "CU TIBU", cont: 17, new: 22, total: 39, dpto: "NORTE DE SANTANDER" }] },
+            { snies: "116800", name: "Licenciatura en Educación Infantil (116800)", locations: [{ city: "Florencia", center: "CU FLORENCIA", cont: 0, new: 12, total: 12, dpto: "CAQUETA" }, { city: "Garzón", center: "CU GARZON", cont: 30, new: 22, total: 52, dpto: "HUILA" }, { city: "Mocoa", center: "CU MOCOA", cont: 30, new: 21, total: 51, dpto: "PUTUMAYO" }, { city: "Neiva", center: "CU NEIVA", cont: 36, new: 27, total: 63, dpto: "HUILA" }, { city: "Pitalito", center: "CU PITALITO", cont: 16, new: 14, total: 30, dpto: "HUILA" }] },
+            { snies: "116832", name: "Licenciatura en Educación Infantil (116832)", locations: [{ city: "Zipaquirá", center: "CU ZIPAQUIRÁ", cont: 0, new: 22, total: 22, dpto: "CUNDINAMARCA" }] },
+            { snies: "117144", name: "Licenciatura en Educación Infantil (117144)", locations: [{ city: "Ibagué", center: "CU IBAGUE", cont: 38, new: 21, total: 59, dpto: "TOLIMA" }, { city: "La Dorada", center: "CU LA DORADA", cont: 13, new: 13, total: 26, dpto: "CALDAS" }] },
+            { snies: "117415", name: "Licenciatura en Lenguas Extranjeras con Énfasis en Inglés (117415)", locations: [{ city: "Neiva", center: "CU NEIVA", cont: 12, new: 0, total: 12, dpto: "HUILA" }] },
+            { snies: "117481", name: "Licenciatura en Educación Infantil (117481)", locations: [{ city: "Inírida", center: "CU INIRIDA", cont: 0, new: 17, total: 17, dpto: "GUAINIA" }, { city: "Mitú", center: "CU MITU", cont: 0, new: 22, total: 22, dpto: "VAUPES" }, { city: "Villavicencio", center: "CU VILLAVICENCIO", cont: 0, new: 29, total: 29, dpto: "META" }] },
+            { snies: "117547", name: "Licenciatura en Educación Infantil (117547)", locations: [{ city: "Orocué", center: "CU OROCUE", cont: 0, new: 10, total: 10, dpto: "CASANARE" }, { city: "Yopal", center: "CU YOPAL", cont: 0, new: 8, total: 8, dpto: "CASANARE" }] },
+            { snies: "117957", name: "Maestría en Educación STEM", locations: [{ city: "Bogotá", center: "ENGATIVA DISTANCIA", cont: 3, new: 89, total: 92, dpto: "BOGOTA D.C." }] }
+        ];
+
+        // Centroides de departamentos para el mapa
+        const dptoMap = {
+            "BOGOTA D.C.": [-74.08, 4.60], "ANTIOQUIA": [-75.5, 7.0], "SANTANDER": [-73.2, 7.0],
+            "VALLE DEL CAUCA": [-76.5, 3.7], "CUNDINAMARCA": [-74.1, 5.0], "HUILA": [-75.7, 2.5],
+            "TOLIMA": [-75.1, 4.0], "CALDAS": [-75.3, 5.2], "NORTE DE SANTANDER": [-73.0, 8.2],
+            "CAQUETA": [-74.0, 1.0], "PUTUMAYO": [-76.5, 0.5], "GUAINIA": [-68.5, 2.5],
+            "VAUPES": [-70.5, 0.5], "META": [-73.0, 3.5], "CASANARE": [-71.5, 5.5]
+        };
+
+        let myChart;
+        let selectedSnies = null;
+
+        // --- FUNCIONES DE RENDERIZADO ---
+        
+        function renderList(data) {
+            const list = document.getElementById('prog-list-div');
+            list.innerHTML = '';
+            data.forEach(p => {
+                const card = document.createElement('div');
+                card.className = `item-card ${selectedSnies === p.snies ? 'active' : ''}`;
+                card.innerHTML = `<span class="snies">SNIES ${p.snies}</span><span class="name">${p.name}</span>`;
+                card.onclick = () => selectProgram(p.snies);
+                list.appendChild(card);
+            });
+        }
+
+        function selectProgram(snies) {
+            selectedSnies = snies;
+            const program = rawData.find(p => p.snies === snies);
+            
+            // UI Update
+            document.querySelectorAll('.item-card').forEach(c => c.classList.toggle('active', c.innerHTML.includes(snies)));
+            document.getElementById('current-p-name').textContent = program.name;
+            document.getElementById('current-p-snies').textContent = program.snies;
+
+            // Table Update
+            const tbody = document.getElementById('p-details-table');
+            tbody.innerHTML = '';
+            program.locations.forEach(l => {
+                tbody.innerHTML += `<tr>
+                    <td><b>${l.city}</b></td>
+                    <td>${l.center}</td>
+                    <td style="text-align: center;">${l.cont}</td>
+                    <td style="text-align: center;"><span class="badge badge-new">${l.new}</span></td>
+                    <td style="text-align: center;"><span class="badge badge-total">${l.total}</span></td>
+                </tr>`;
+            });
+
+            updateMap(program);
+        }
+
+        function updateMap(program = null) {
+            if (!myChart) return;
+
+            const scatterData = [];
+            if (program) {
+                const counts = {};
+                program.locations.forEach(l => counts[l.dpto] = (counts[l.dpto] || 0) + l.total);
+                Object.keys(counts).forEach(d => {
+                    if (dptoMap[d]) scatterData.push({ name: d, value: [...dptoMap[d], counts[d]] });
+                });
+            }
+
+            const option = {
+                geo: {
+                    map: 'Colombia', 
+                    roam: true,
+                    label: { show: false },
+                    itemStyle: { 
+                        areaColor: '#f1f5f9', 
+                        borderColor: '#cbd5e1', // Gris más suave
+                        borderWidth: 0.3 // Líneas muy delgadas
+                    },
+                    emphasis: { 
+                        itemStyle: { areaColor: '#e2e8f0' } 
+                    }
+                },
+                series: [
+                    {
+                        type: 'map',
+                        map: 'Colombia',
+                        geoIndex: 0,
+                        data: []
+                    },
+                    {
+                        type: 'effectScatter',
+                        coordinateSystem: 'geo',
+                        data: scatterData,
+                        label: { 
+                            show: true, 
+                            // Posición inteligente: Izquierda o Derecha según la longitud para evitar choques
+                            position: 'right', 
+                            formatter: '{b}: {@[2]}', 
+                            fontWeight: 'bold', 
+                            color: '#003366',
+                            backgroundColor: 'rgba(255,255,255,0.95)', 
+                            padding: [5, 10],
+                            borderRadius: 6,
+                            borderWidth: 1.5,
+                            borderColor: '#003366',
+                            distance: 15,
+                            fontSize: 11
+                        },
+                        labelLayout: {
+                            hideOverlap: false, // Queremos ver todos los datos
+                            moveOverlap: 'shiftY', // Obliga a desplazarse verticalmente si hay choque
+                            minMargin: 10 // Espacio mínimo de 10px entre etiquetas
+                        },
+                        itemStyle: { 
+                            color: '#FFCC00', 
+                            shadowBlur: 15, 
+                            shadowColor: 'rgba(0,0,0,0.4)',
+                            borderColor: '#ffffff',
+                            borderWidth: 2
+                        }
+                    }
+                ]
+            };
+
+            myChart.setOption(option);
+        }
+
+        // --- INICIO ROBUSTO ---
+        function startApp() {
+            try {
+                // 1. Renderizar lista primero para que el usuario vea ALGO
+                renderList(rawData);
+                const gTotal = rawData.reduce((acc, p) => acc + p.locations.reduce((a, l) => a + l.total, 0), 0);
+                document.getElementById('grand-total-val').textContent = gTotal.toLocaleString();
+
+                // 2. Inicializar Mapa con reintento y GeoJSON de respaldo
+                initMap();
+
+                document.getElementById('prog-search').oninput = (e) => {
+                    const filtered = rawData.filter(p => p.name.toLowerCase().includes(e.target.value.toLowerCase()) || p.snies.includes(e.target.value));
+                    renderList(filtered);
+                };
+            } catch (err) {
+                console.error("Error crítico en App:", err);
+            }
+        }
+
+        async function initMap() {
+            const chartDom = document.getElementById('main-map');
+            myChart = echarts.init(chartDom);
+            
+            const mapUrls = [
+                'https://gist.githubusercontent.com/john-guerra/727e8992e9599b9d9f1dbfdc4c8e479e/raw/89f6497f6c6f7881b4f4c9c7457a414e0310fae1/colombia-municipios.json', // Municipios
+                'https://gist.githubusercontent.com/john-guerra/43c7656821069d00dcbc/raw/3aadedf47badbdac823b00dbe259f6bc6d9e1899/colombia.geo.json', // Departamentos
+                'https://raw.githubusercontent.com/macunba/Colombia-GeoJSON/master/colombia.geo.json'
+            ];
+
+            let mapLoaded = false;
+
+            for (let url of mapUrls) {
+                try {
+                    const res = await fetch(url);
+                    if (res.ok) {
+                        const json = await res.json();
+                        echarts.registerMap('Colombia', json);
+                        mapLoaded = true;
+                        break;
+                    }
+                } catch (e) {
+                    console.warn("Falla al cargar mapa desde:", url);
+                }
+            }
+
+            if (!mapLoaded) {
+                // Último recurso: Cargar librería por CDN
+                const script = document.createElement('script');
+                script.src = 'https://cdn.jsdelivr.net/npm/echarts-countries-js@1.0.3/echarts-countries-js/Colombia.js';
+                script.onload = () => {
+                    document.getElementById('map-loading').style.display = 'none';
+                    if (rawData.length > 0) selectProgram(rawData[0].snies);
+                };
+                document.head.appendChild(script);
+            } else {
+                document.getElementById('map-loading').style.display = 'none';
+                if (rawData.length > 0) selectProgram(rawData[0].snies);
+            }
+        }
+
+        // Ejecutar inicio
+        window.addEventListener('load', startApp);
+        window.addEventListener('resize', () => myChart && myChart.resize());
+
+    </script>
+</body>
+</html>
